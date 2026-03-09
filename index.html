@@ -160,7 +160,7 @@
     <div id="status"></div>
 
     <div class="preview">
-      <h3>📋 Data Tersimpan (Belum Dikirim)</h3>
+      <h3 id="previewTitle">📋 Data Tersimpan (Belum Dikirim)</h3>
       <img id="fotoPreview" class="hidden" alt="Preview foto" style="max-width:100%; margin-bottom:8px; border-radius:8px;">
       
       <button type="button" id="downloadBtn" class="hidden" style="background:#ffc107; color:#000; margin-bottom:15px;">⬇️ Unduh Gambar Ber-Watermark</button>
@@ -392,6 +392,19 @@ el.mccb.addEventListener("change", () => {
   el.mccb.dataset.prev = jenisBaru;
 });
 
+/* ---------- AUTO UPDATE TANGGAL & SHIFT DI TABEL ---------- */
+document.getElementById('shift').addEventListener('change', (e) => {
+  const newShift = e.target.value;
+  Object.keys(savedReports).forEach(k => savedReports[k].shift = newShift);
+  if (Object.keys(savedReports).length > 0) renderOutput(); 
+});
+
+document.getElementById('tanggal').addEventListener('change', (e) => {
+  const newTanggal = e.target.value;
+  Object.keys(savedReports).forEach(k => savedReports[k].tanggal = newTanggal);
+  if (Object.keys(savedReports).length > 0) renderOutput(); 
+});
+
 /* ---------- login flow ---------- */
 loginBtn.addEventListener('click', () => {
   const nama = loginNama.value.trim();
@@ -461,7 +474,6 @@ function askWatermarkOptions(isMismatch, tglInput, shift, fromGallery) {
     if(shift === "Shift 3") shiftTime = "23:59:00";
     const shiftStrFull = formatDateFromInput(tglInput, shiftTime);
 
-    // Atur visibilitas tombol "Sudah Bergeotag" berdasarkan sumber foto
     btnSkipWm.style.display = fromGallery ? 'block' : 'none';
 
     if (isMismatch) {
@@ -479,7 +491,6 @@ function askWatermarkOptions(isMismatch, tglInput, shift, fromGallery) {
 
     modal.style.display = 'flex';
 
-    // AKSI TOMBOL DALAM MODAL
     document.getElementById('btnSkipWm').onclick = () => {
       modal.style.display = 'none';
       resolve({ skip: true, timestamp: "" });
@@ -552,7 +563,6 @@ function compressAndWatermark(dataURL, customTimestamp, skipWatermark) {
       ctx.clearRect(0,0,w,h);
       ctx.drawImage(img,0,0,w,h);
 
-      // JIKA BYPASS WATERMARK (Langsung Kembalikan Foto Asli)
       if (skipWatermark) {
         res(canvas.toDataURL('image/jpeg', 0.75));
         return; 
@@ -560,11 +570,9 @@ function compressAndWatermark(dataURL, customTimestamp, skipWatermark) {
 
       const titleSize = Math.max(18, Math.floor(h/35)); 
       const textSize = Math.max(14, Math.floor(h/45));  
-
       const padding = 20; 
       const margin = 20;  
       const cardWidth = w - (margin * 2);
-
       const iconSize = textSize * 1.5; 
       const iconMarginRight = 10;
       const detailAvailableWidth = cardWidth - (padding * 2) - iconSize - iconMarginRight;
@@ -585,11 +593,9 @@ function compressAndWatermark(dataURL, customTimestamp, skipWatermark) {
       }
       
       const timeText = `${customTimestamp} GMT +07:00`;
-
       const titleLineHeight = titleSize * 1.4;
       const textLineHeight = textSize * 1.4;
       const totalTextLines = addressLines.length + 2; 
-      
       const cardHeight = padding + titleLineHeight + 10 + (totalTextLines * textLineHeight) + padding;
       const cardY = h - cardHeight - margin;
       const cardX = margin;
@@ -598,30 +604,22 @@ function compressAndWatermark(dataURL, customTimestamp, skipWatermark) {
       pinImg.onload = () => {
         ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
         drawRoundRect(ctx, cardX, cardY, cardWidth, cardHeight, 15); 
-
         ctx.textBaseline = 'top';
         ctx.fillStyle = "#ffffff";
         ctx.font = `bold ${titleSize}px Roboto, "Segoe UI", Arial, sans-serif`;
         ctx.fillText(titleText, cardX + padding, cardY + padding);
-
         let currentY = cardY + padding + titleLineHeight + 10; 
-
         const iconY = currentY - ((iconSize - textSize) / 2);
         ctx.drawImage(pinImg, cardX + padding, iconY, iconSize, iconSize);
-
         ctx.font = `${textSize}px Roboto, "Segoe UI", Arial, sans-serif`;
         const detailStartX = cardX + padding + iconSize + iconMarginRight;
-
         addressLines.forEach(ln => { 
           ctx.fillText(ln, detailStartX, currentY); 
           currentY += textLineHeight; 
         });
-
         ctx.fillText(coordText, detailStartX, currentY);
         currentY += textLineHeight;
-        
         ctx.fillText(timeText, detailStartX, currentY);
-
         res(canvas.toDataURL('image/jpeg',0.75));
       };
       pinImg.src = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ff5252'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E";
@@ -659,11 +657,9 @@ function cekValidasiAwal() {
   return true;
 }
 
-// 1. Tombol Buka Kamera
 btnKamera.addEventListener('click', async () => {
   if (!cekValidasiAwal()) return;
-  isFromGallery = false; // Set Tracker ke Kamera
-
+  isFromGallery = false;
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   if (isMobile) {
     foto.setAttribute('capture', 'environment');
@@ -681,38 +677,31 @@ btnKamera.addEventListener('click', async () => {
   }
 });
 
-// 2. Tombol Buka Galeri
 btnGaleri.addEventListener('click', () => {
   if (!cekValidasiAwal()) return;
-  isFromGallery = true; // Set Tracker ke Galeri
+  isFromGallery = true;
   foto.removeAttribute('capture'); 
   foto.click(); 
 });
 
-// Tutup Kamera Desktop
 btnCloseCamera.addEventListener('click', () => {
   webcamModal.style.display = 'none';
   if (desktopStream) desktopStream.getTracks().forEach(t => t.stop());
 });
 
-// Jepret Kamera Desktop
 btnSnap.addEventListener('click', () => {
   cameraCanvas.width = videoStream.videoWidth;
   cameraCanvas.height = videoStream.videoHeight;
   cameraCanvas.getContext('2d').drawImage(videoStream, 0, 0);
   const dataUrl = cameraCanvas.toDataURL('image/jpeg');
-  
   webcamModal.style.display = 'none';
   if (desktopStream) desktopStream.getTracks().forEach(t => t.stop());
-  
   jalankanProsesFoto(dataUrl); 
 });
 
-/* ---------- FOTO: INPUT FILE (HP/Galeri) ---------- */
 foto.addEventListener("change", async (ev) => {
   const file = ev.target.files?.[0];
   if (!file) return;
-
   try {
     const dataUrl = await readFileAsDataURL(file);
     await jalankanProsesFoto(dataUrl);
@@ -722,44 +711,33 @@ foto.addEventListener("change", async (ev) => {
 });
 
 
-/* ---------- FOTO: FUNGSI UTAMA KOMPRES, POP-UP, & UPLOAD ---------- */
 async function jalankanProsesFoto(dataUrl) {
   const tanggal = document.getElementById("tanggal").value;
   const shift = document.getElementById("shift").value;
-
   try {
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
     const todayStr = `${yyyy}-${mm}-${dd}`;
-      
     const currentShift = getCurrentShift(now);
     const isMismatch = (tanggal !== todayStr || shift !== currentShift);
-    
     let finalTimestamp = "";
     let skipWM = false;
-
-    // SMART AUTO-WATERMARK (Bypass Pop-up jika pakai Kamera dan Jadwal Benar)
     if (!isFromGallery && !isMismatch) {
       finalTimestamp = formatTimeCustom(now);
       skipWM = false;
     } else {
-      // Munculkan Modal Pilihan Watermark (Karena dari Galeri ATAU ada yang mismatch)
       const userChoice = await askWatermarkOptions(isMismatch, tanggal, shift, isFromGallery);
       finalTimestamp = userChoice.timestamp;
       skipWM = userChoice.skip;
     }
-
     currentCompressedDataURL = await compressAndWatermark(dataUrl, finalTimestamp, skipWM);
-    
     fotoPreview.src = currentCompressedDataURL;
     fotoPreview.classList.remove("hidden");
     downloadBtn.classList.remove("hidden");
     fotoStatus.textContent = "⏳ Mengunggah foto ke Drive...";
-
     const base64 = currentCompressedDataURL.split(",")[1];
-
     const body = new URLSearchParams();
     body.append("filedata", base64);
     body.append("mimetype", "image/jpeg");
@@ -768,26 +746,16 @@ async function jalankanProsesFoto(dataUrl) {
     body.append("satuan_kerja", document.getElementById("satuan_kerja").value);
     body.append("shift", shift);
     body.append("tanggal", tanggal);
-
-    const res = await fetch(fotoUploadURL, {
-      method: "POST",
-      body: body
-    });
-
+    const res = await fetch(fotoUploadURL, { method: "POST", body: body });
     const text = await res.text();
-    if (!text) throw new Error("Respons kosong dari server.");
     const result = JSON.parse(text);
-    
     if (result.status === "ok" && result.url) {
       fotoDriveURL = result.url;
       fotoStatus.textContent = "✅ Foto tersimpan di Drive.";
       showToast("📸 Foto tersimpan di Drive.");
-      
       for (const k in savedReports) {
         const it = savedReports[k];
-        if (it.satuan_kerja === document.getElementById('satuan_kerja').value &&
-            it.tanggal === tanggal &&
-            it.shift === shift) {
+        if (it.satuan_kerja === document.getElementById('satuan_kerja').value && it.tanggal === tanggal && it.shift === shift) {
           it.foto = fotoDriveURL;
         }
       }
@@ -795,18 +763,15 @@ async function jalankanProsesFoto(dataUrl) {
     } else {
       throw new Error(result.message || "Upload server menolak");
     }
-
   } catch (err) {
     console.error(err);
     alert("❌ Gagal memproses/upload foto: " + err.message);
     fotoStatus.textContent = "❌ Upload gagal.";
-    foto.value = ""; 
     fotoPreview.classList.add("hidden");
     downloadBtn.classList.add("hidden");
   }
 }
 
-/* ---------- LOGIKA UNDUH GAMBAR ---------- */
 downloadBtn.addEventListener('click', () => {
   if (!currentCompressedDataURL) return;
   const a = document.createElement('a');
@@ -834,27 +799,20 @@ document.getElementById('saveBtn').addEventListener('click', () => {
     return;
   }
 
-  const key = `${satuan}_${tanggal}_${shift}_${jenis}`;
+  // Kunci data sekarang pakai jenis saja agar menimpa jika MCCB sama diinput ulang
+  const key = jenis; 
   savedReports[key] = {
-    satuan_kerja: satuan,
-    petugas: petugas,
-    tanggal: tanggal,
-    shift: shift,
-    jenis: jenis,
-    arus_r: r,
-    arus_s: s,
-    arus_t: t,
-    catatan: catatan,
-    foto: fotoDriveURL || "",
-    savedAt: new Date().toLocaleTimeString()
+    satuan_kerja: satuan, petugas: petugas, tanggal: tanggal, shift: shift,
+    jenis: jenis, arus_r: r, arus_s: s, arus_t: t, catatan: catatan,
+    foto: fotoDriveURL || "", savedAt: new Date().toLocaleTimeString()
   };
 
   dataPerMCB[jenis] = { r, s, t, catatan };
+  document.getElementById('previewTitle').textContent = "📋 Data Tersimpan (Belum Dikirim)"; 
   renderOutput();
   showToast("💾 Data tersimpan / diperbarui.");
 });
 
-/* ---------- render preview table ---------- */
 function renderOutput() {
   if (Object.keys(savedReports).length === 0) {
     output.innerHTML = "<em>Belum ada data tersimpan.</em>";
@@ -863,13 +821,9 @@ function renderOutput() {
   const satuan = document.getElementById('satuan_kerja').value;
   const petugas = document.getElementById('petugas').value;
   const urutan = satuan === "Stasiun Pucanggading" ? ORDER_MCCB : ORDER_PDB;
+  const sorted = Object.values(savedReports).sort((a,b) => urutan.indexOf(a.jenis) - urutan.indexOf(b.jenis));
 
-  const sorted = Object.values(savedReports).sort(
-    (a,b) => urutan.indexOf(a.jenis) - urutan.indexOf(b.jenis)
-  );
-
-  let html = `
-    <div style="margin-bottom: 15px; font-size: 14px; color: #000;">
+  let html = `<div style="margin-bottom: 15px; font-size: 14px; color: #000;">
       <table style="width: 100%; border: none; margin: 0; background: transparent;">
         <tr style="border: none;">
           <td style="border: none; padding: 4px 0; width: 140px; font-weight: normal;">Nama Petugas</td>
@@ -880,30 +834,17 @@ function renderOutput() {
           <td style="border: none; padding: 4px 0;">: ${satuan}</td>
         </tr>
       </table>
-    </div>
-  `;
+    </div>`;
 
-  html += "<div style='overflow-x: auto;'>"; 
-  html += "<table><tr><th>Tanggal</th><th>Shift</th><th>Jenis</th><th>R</th><th>S</th><th>T</th><th>Foto</th></tr>";
-  
+  html += "<div style='overflow-x: auto;'><table><tr><th>Tanggal</th><th>Shift</th><th>Jenis</th><th>R</th><th>S</th><th>T</th><th>Foto</th></tr>";
   sorted.forEach((r, index) => {
-    html += `<tr>
-      <td>${r.tanggal}</td>
-      <td>${r.shift}</td>
-      <td>${r.jenis}</td>
-      <td>${r.arus_r}</td>
-      <td>${r.arus_s}</td>
-      <td>${r.arus_t}</td>`;
-      
-    // MERGE KOLOM FOTO (Hanya render di baris pertama)
+    html += `<tr><td>${r.tanggal}</td><td>${r.shift}</td><td>${r.jenis}</td><td>${r.arus_r}</td><td>${r.arus_s}</td><td>${r.arus_t}</td>`;
     if (index === 0) {
       const fotoCell = r.foto ? `<a href="${r.foto}" target="_blank" style="color: #0056b3; font-weight: bold; text-decoration: none;">lihat</a>` : "";
       html += `<td rowspan="${sorted.length}" style="text-align: center; vertical-align: middle;">${fotoCell}</td>`;
     }
-    
     html += `</tr>`;
   });
-  
   html += "</table></div>";
   output.innerHTML = html;
 }
@@ -915,45 +856,56 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     return; 
   }
 
+  // --- FREEZE TOMBOL ---
+  const btnKirim = document.getElementById('submitBtn');
+  btnKirim.disabled = true; 
+  btnKirim.style.background = "#6c757d"; 
+  btnKirim.textContent = "⏳ Sedang memproses... JANGAN DITUTUP";
+  status.textContent = "⏳ Mengirim data ke server...";
+
   const satuan = document.getElementById('satuan_kerja').value;
   const urutan = satuan === "Stasiun Pucanggading" ? ORDER_MCCB : ORDER_PDB;
-
-  const sortedData = Object.values(savedReports).sort(
-    (a, b) => urutan.indexOf(a.jenis) - urutan.indexOf(b.jenis)
-  );
+  const sortedData = Object.values(savedReports).sort((a, b) => urutan.indexOf(a.jenis) - urutan.indexOf(b.jenis));
 
   const lastIndex = sortedData.length - 1;
   sortedData.forEach((row, i) => {
     row.lokasi = lokasiTeks;
     row.satuan_kerja ||= satuan;
-    if (i === lastIndex) {
-      row.foto = fotoDriveURL || row.foto || "";
-    } else {
-      delete row.foto;
-    }
+    if (i === lastIndex) { row.foto = fotoDriveURL || row.foto || ""; } else { delete row.foto; }
   });
-  
-  status.textContent = "⏳ Mengirim data...";
+
   try {
     await fetch(scriptURL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(sortedData)
     });
 
-    status.textContent = "✅ Data terkirim ke Spreadsheet Data Metering!";
+    status.textContent = "✅ Data terkirim ke Spreadsheet!";
     showToast("✅ Data berhasil dikirim!");
-    savedReports = {};
-    renderOutput();
+    
+    // --- RESET PREVIEW & BERSIH-BERSIH ---
+    savedReports = {}; 
+    document.getElementById('previewTitle').textContent = "✅ Data Telah Terkirim";
+    fotoPreview.classList.add("hidden");
+    downloadBtn.classList.add("hidden");
+    fotoPreview.src = ""; 
+    document.getElementById('fotoStatus').textContent = "— belum ada foto";
+    currentCompressedDataURL = "";
+    fotoDriveURL = "";
+    renderOutput(); 
   } catch (err) {
     console.error(err);
     status.textContent = "❌ Gagal kirim data.";
     showToast("❌ Gagal mengirim data.");
+  } finally {
+    // --- PENCAIR TOMBOL ---
+    btnKirim.disabled = false; 
+    btnKirim.style.background = "#0056b3"; 
+    btnKirim.textContent = "📤 Kirim ke Spreadsheet Data Metering";
   }
 });
 
-/* ---------- Flowchart popup ---------- */
 const flowBtn = document.getElementById("flowBtn");
 const flowModal = document.getElementById("flowModal");
 const flowImg = document.getElementById("flowImg");
