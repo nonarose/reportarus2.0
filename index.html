@@ -871,6 +871,9 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   sortedData.forEach((row, i) => {
     row.lokasi = lokasiTeks;
     row.satuan_kerja ||= satuan;
+    if (row.arus_r) row.arus_r = row.arus_r.toString().replace('.', ',');
+    if (row.arus_s) row.arus_s = row.arus_s.toString().replace('.', ',');
+    if (row.arus_t) row.arus_t = row.arus_t.toString().replace('.', ',');
     if (i === lastIndex) { row.foto = fotoDriveURL || row.foto || ""; } else { delete row.foto; }
   });
 
